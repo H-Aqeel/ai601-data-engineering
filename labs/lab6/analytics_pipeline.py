@@ -1,43 +1,64 @@
+from prefect import task, flow, get_run_logger
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def main():
-    # Step 1: Fetch Data
-    print("Reading data...")
-    # Assume a dataset with sales figures and other fields is provided.
-    df = pd.read_csv("data/analytics_data.csv")
-    print(f"Data shape: {df.shape}")
 
-    # Step 2: Validate Data
-    print("Validating data...")
+@task
+def fetch_data():
+    logger = get_run_logger()
+    logger.info("Reading data...")
+
+    file_path = "/home/hamna/ai601-data-engineering/labs/lab6/analytics_data.csv"
+    df = pd.read_csv(file_path)
+
+    logger.info(f"Data shape: {df.shape}")
+    return df
+
+
+@task
+def validate_data(df):
+    logger = get_run_logger()
+    logger.info("Validating data...")
     missing_values = df.isnull().sum()
-    print("Missing values:\n", missing_values)
-    # For simplicity, drop any rows with missing values
+    logger.info(f"Missing values:\n{missing_values}")
     df_clean = df.dropna()
+    return df_clean
 
-    # Step 3: Transform Data
-    print("Transforming data...")
-    # For example, if there is a "sales" column, create a normalized version.
+@task
+def transform_data(df_clean):
+    logger = get_run_logger()
+    logger.info("Transforming data...")
     if "sales" in df_clean.columns:
         df_clean["sales_normalized"] = (df_clean["sales"] - df_clean["sales"].mean()) / df_clean["sales"].std()
+    return df_clean
 
-    # Step 4: Generate Analytics Report
-    print("Generating analytics report...")
+@task
+def generate_report(df_clean):
+    logger = get_run_logger()
     summary = df_clean.describe()
-    summary.to_csv("data/analytics_summary.csv")
-    print("Summary statistics saved to data/analytics_summary.csv")
+    summary.to_csv("summary.csv")
+    logger.info("Summary statistics saved to data summary.csv")
 
-    # Step 5: Create a Histogram for Sales Distribution
+@task
+def create_histogram(df_clean):
+    logger = get_run_logger()
     if "sales" in df_clean.columns:
         plt.hist(df_clean["sales"], bins=20)
         plt.title("Sales Distribution")
         plt.xlabel("Sales")
         plt.ylabel("Frequency")
-        plt.savefig("data/sales_histogram.png")
+        plt.savefig("/home/hamna/ai601-data-engineering/labs/lab6/sales_histogram.png")
         plt.close()
-        print("Sales histogram saved to data/sales_histogram.png")
+        logger.info("Sales histogram saved to  sales_histogram.png")
 
-    print("Analytics pipeline completed.")
+@flow
+def analytics_pipeline():
+    df = fetch_data()
+    df_clean = validate_data(df)
+    df_transformed = transform_data(df_clean)
+    generate_report(df_transformed)
+    create_histogram(df_transformed)
 
 if __name__ == "__main__":
-    main()
+    analytics_pipeline()
+

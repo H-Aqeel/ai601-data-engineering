@@ -3,17 +3,26 @@ name: flows
 
 deployments:
 - name: ml-pipeline
-  version: "1.0"
-  description: "End-to-end ML pipeline orchestrated with Prefect 3.2.14"
+  version: '1.0'
+  description: End-to-end ML pipeline orchestrated with Prefect 3.2.14
   entrypoint: ml_pipeline.py:ml_pipeline
   parameters:
-    dataset_path: "iris.csv"
+    dataset_path: iris.csv
     accuracy_threshold: 0.9
     test_size: 0.2
   schedules:
-    - cron: "0 9 * * *"  # Schedule: Every day at 9 AM local time
+  - cron: 0 9 * * *
+    timezone:
+    day_or: true
+    active: true
   work_pool:
-    name: default
+    name: hamna
     work_queue_name: default
     type: process
     auto_create: true
+    job_variables: {}
+  tags: []
+  pull:
+  - prefect.deployments.steps.git_clone:
+      repository: https://github.com/rubabzs/ai601-data-engineering.git
+      branch: main
